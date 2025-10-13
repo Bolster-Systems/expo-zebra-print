@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import ExternalAccessory
 
 public class ExpoZebraPrintModule: Module {
   // Each module class must implement the definition function. The definition consists of components
@@ -12,12 +13,16 @@ public class ExpoZebraPrintModule: Module {
 
     // GetPrinters function - returns an array of printer serial numbers
     AsyncFunction("GetPrinters") { () -> [String] in
-      // Return dummy serial numbers for now
-      return [
-        "XXZNJ123456",
-        "XXZNJ789012",
-        "XXZNJ345678"
-      ]
+      // Get all connected accessories
+      let accessoryManager = EAAccessoryManager.shared()
+      let connectedAccessories = accessoryManager.connectedAccessories
+
+      // Filter for Zebra printers and map to serial numbers
+      let serialNumbers = connectedAccessories
+        .filter { $0.protocolStrings.contains("com.zebra.rawport") }
+        .map { $0.serialNumber }
+
+      return serialNumbers
     }
 
     // DoPrint function - sends label data to a printer
