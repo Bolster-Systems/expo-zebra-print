@@ -1,11 +1,8 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
-import { ExpoZebraPrintModuleEvents } from './ExpoZebraPrint.types';
-
-declare class ExpoZebraPrintModule extends NativeModule<ExpoZebraPrintModuleEvents> {
-  PI: number;
-  hello(): string;
-  setValueAsync(value: string): Promise<void>;
+declare class ExpoZebraPrintModule extends NativeModule {
+  GetPrinters(): Promise<string[]>;
+  DoPrint(serialNumber: string, labelData: string): Promise<boolean>;
 }
 
 // This call loads the native module object from the JSI.
