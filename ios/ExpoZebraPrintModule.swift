@@ -143,9 +143,19 @@ public class ExpoZebraPrintModule: Module {
     }
 
     // DoPrint function - sends label data to a printer
-    AsyncFunction("DoPrint") { (serialNumber: String, labelData: String) -> Bool in
-      // Return true for now (dummy implementation)
-      return true
+    AsyncFunction("DoPrint") { (serialNumber: String, labelData: String, promise: Promise) in
+      // Dispatch to background queue to avoid blocking
+      DispatchQueue.global(qos: .default).async {
+        do {
+          try ZebraPrinterWrapper.print(
+            withSerialNumber: serialNumber,
+            labelData: labelData
+          )
+          promise.resolve(true)
+        } catch {
+          promise.reject("PRINT_ERROR", error.localizedDescription)
+        }
+      }
     }
   }
 }

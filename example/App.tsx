@@ -58,11 +58,13 @@ export default function App() {
 
   const handleDoPrint = async (serialNumber: string) => {
     try {
-      const labelData = '^XA^FO50,50^ADN,36,20^FDHello World^FS^XZ';
-      const success = await ExpoZebraPrint.DoPrint(serialNumber, labelData);
-      setPrintStatus(success ? `Print sent to ${serialNumber}` : 'Print failed');
-    } catch (error) {
-      setPrintStatus(`Error: ${error}`);
+      setPrintStatus(`Printing to ${serialNumber}...`);
+      // ZPL test label - prints "Hello World" and "Test Print" with a border
+      const labelData = '^XA^FO50,50^ADN,36,20^FDHello World^FS^FO50,100^ADN,36,20^FDTest Print^FS^FO30,30^GB350,120,3^FS^XZ';
+      await ExpoZebraPrint.DoPrint(serialNumber, labelData);
+      setPrintStatus(`Successfully printed to ${serialNumber}`);
+    } catch (error: any) {
+      setPrintStatus(`Print error: ${error.message || error}`);
     }
   };
 

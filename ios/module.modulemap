@@ -1,0 +1,7 @@
+module ZSDK_API {
+    header "ZSDK_API.xcframework/ios-arm64/Headers/MfiBtPrinterConnection.h"
+    header "ZSDK_API.xcframework/ios-arm64/Headers/ZebraPrinterConnection.h"
+    header "ZSDK_API.xcframework/ios-arm64/Headers/ZebraPrinter.h"
+    header "ZSDK_API.xcframework/ios-arm64/Headers/ZebraPrinterFactory.h"
+    export *
+}
