@@ -5,6 +5,7 @@ import { Button, SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndic
 export default function App() {
   const [printers, setPrinters] = useState<string[]>([]);
   const [discoveredPrinters, setDiscoveredPrinters] = useState<BluetoothPrinter[]>([]);
+  const [connectedBluetoothPrinters, setConnectedBluetoothPrinters] = useState<BluetoothPrinter[]>([]);
   const [printStatus, setPrintStatus] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
@@ -29,7 +30,15 @@ export default function App() {
       setPrintStatus(`Connecting to ${name}...`);
       await ExpoZebraPrint.ConnectToPrinter(id);
       setPrintStatus(`Successfully connected to ${name}`);
-      // Refresh the connected printers list
+
+      // Move printer from discovered to connected list
+      const connectedPrinter = discoveredPrinters.find(p => p.id === id);
+      if (connectedPrinter) {
+        setConnectedBluetoothPrinters(prev => [...prev, connectedPrinter]);
+        setDiscoveredPrinters(prev => prev.filter(p => p.id !== id));
+      }
+
+      // Refresh the MFi connected printers list
       handleGetPrinters();
     } catch (error) {
       setPrintStatus(`Connection error: ${error}`);
@@ -42,9 +51,6 @@ export default function App() {
     try {
       const serialNumbers = await ExpoZebraPrint.GetPrinters();
       setPrinters(serialNumbers);
-      if (serialNumbers.length === 0) {
-        setPrintStatus('No connected printers found');
-      }
     } catch (error) {
       setPrintStatus(`Error: ${error}`);
     }
@@ -72,7 +78,7 @@ export default function App() {
             disabled={isScanning}
           />
           {isScanning && <ActivityIndicator style={styles.spinner} size="large" />}
-          {discoveredPrinters.length > 0 && (
+          {discoveredPrinters.length > 0 ? (
             <View style={styles.printerList}>
               {discoveredPrinters.map((printer) => (
                 <View key={printer.id} style={styles.printerItem}>
@@ -88,20 +94,49 @@ export default function App() {
                 </View>
               ))}
             </View>
+          ) : !isScanning && (
+            <Text style={styles.emptyText}>No unconnected printers found</Text>
           )}
         </Group>
 
         <Group name="Connected Printers">
-          <Button title="Get Connected Printers" onPress={handleGetPrinters} />
+          <Button title="Refresh Connected Printers" onPress={handleGetPrinters} />
+
+          {/* Bluetooth Connected Printers */}
+          {connectedBluetoothPrinters.length > 0 && (
+            <>
+              <Text style={styles.subHeader}>Bluetooth Devices</Text>
+              <View style={styles.printerList}>
+                {connectedBluetoothPrinters.map((printer) => (
+                  <View key={printer.id} style={styles.printerItem}>
+                    <View style={styles.printerInfo}>
+                      <Text style={styles.printerName}>{printer.name}</Text>
+                      <Text style={styles.printerId}>{printer.id}</Text>
+                    </View>
+                    <Text style={styles.connectedBadge}>Connected</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* MFi Connected Printers */}
           {printers.length > 0 && (
-            <View style={styles.printerList}>
-              {printers.map((serial) => (
-                <View key={serial} style={styles.printerItem}>
-                  <Text style={styles.serialText}>{serial}</Text>
-                  <Button title="Print" onPress={() => handleDoPrint(serial)} />
-                </View>
-              ))}
-            </View>
+            <>
+              <Text style={styles.subHeader}>MFi Accessories (com.zebra.rawport)</Text>
+              <View style={styles.printerList}>
+                {printers.map((serial) => (
+                  <View key={serial} style={styles.printerItem}>
+                    <Text style={styles.serialText}>{serial}</Text>
+                    <Button title="Print" onPress={() => handleDoPrint(serial)} />
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {connectedBluetoothPrinters.length === 0 && printers.length === 0 && (
+            <Text style={styles.emptyText}>No connected printers</Text>
           )}
         </Group>
 
@@ -135,6 +170,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontWeight: '600',
   },
+  subHeader: {
+    fontSize: 16,
+    marginTop: 20,
+    marginBottom: 10,
+    fontWeight: '600',
+    color: '#555',
+  },
   group: {
     margin: 20,
     backgroundColor: '#fff',
@@ -146,7 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
   printerList: {
-    marginTop: 20,
+    marginTop: 10,
   },
   printerItem: {
     flexDirection: 'row',
@@ -178,5 +220,16 @@ const styles = StyleSheet.create({
   },
   spinner: {
     marginTop: 10,
+  },
+  emptyText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  connectedBadge: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
 });
