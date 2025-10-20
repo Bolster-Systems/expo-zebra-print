@@ -1,16 +1,50 @@
 import { useState } from 'react';
-import ExpoZebraPrint from 'expo-zebra-print';
-import { Button, SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import ExpoZebraPrint, { type BluetoothPrinter } from 'expo-zebra-print';
+import { Button, SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 
 export default function App() {
   const [printers, setPrinters] = useState<string[]>([]);
+  const [discoveredPrinters, setDiscoveredPrinters] = useState<BluetoothPrinter[]>([]);
   const [printStatus, setPrintStatus] = useState<string>('');
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+
+  const handleScanForPrinters = async () => {
+    try {
+      setIsScanning(true);
+      setPrintStatus('Scanning for Bluetooth printers...');
+      const discovered = await ExpoZebraPrint.ScanForPrinters();
+      setDiscoveredPrinters(discovered);
+      setPrintStatus(discovered.length > 0 ? `Found ${discovered.length} device(s)` : 'No devices found');
+    } catch (error) {
+      setPrintStatus(`Scan error: ${error}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleConnectToPrinter = async (id: string, name: string) => {
+    try {
+      setConnectingId(id);
+      setPrintStatus(`Connecting to ${name}...`);
+      await ExpoZebraPrint.ConnectToPrinter(id);
+      setPrintStatus(`Successfully connected to ${name}`);
+      // Refresh the connected printers list
+      handleGetPrinters();
+    } catch (error) {
+      setPrintStatus(`Connection error: ${error}`);
+    } finally {
+      setConnectingId(null);
+    }
+  };
 
   const handleGetPrinters = async () => {
     try {
       const serialNumbers = await ExpoZebraPrint.GetPrinters();
       setPrinters(serialNumbers);
-      setPrintStatus('');
+      if (serialNumbers.length === 0) {
+        setPrintStatus('No connected printers found');
+      }
     } catch (error) {
       setPrintStatus(`Error: ${error}`);
     }
@@ -31,8 +65,34 @@ export default function App() {
       <ScrollView style={styles.container}>
         <Text style={styles.header}>Zebra Print Module</Text>
 
-        <Group name="Get Printers">
-          <Button title="Get Available Printers" onPress={handleGetPrinters} />
+        <Group name="Scan for Bluetooth Printers">
+          <Button
+            title={isScanning ? "Scanning..." : "Scan for Printers"}
+            onPress={handleScanForPrinters}
+            disabled={isScanning}
+          />
+          {isScanning && <ActivityIndicator style={styles.spinner} size="large" />}
+          {discoveredPrinters.length > 0 && (
+            <View style={styles.printerList}>
+              {discoveredPrinters.map((printer) => (
+                <View key={printer.id} style={styles.printerItem}>
+                  <View style={styles.printerInfo}>
+                    <Text style={styles.printerName}>{printer.name}</Text>
+                    <Text style={styles.printerId}>{printer.id}</Text>
+                  </View>
+                  {connectingId === printer.id ? (
+                    <ActivityIndicator size="small" />
+                  ) : (
+                    <Button title="Connect" onPress={() => handleConnectToPrinter(printer.id, printer.name)} />
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+        </Group>
+
+        <Group name="Connected Printers">
+          <Button title="Get Connected Printers" onPress={handleGetPrinters} />
           {printers.length > 0 && (
             <View style={styles.printerList}>
               {printers.map((serial) => (
@@ -96,6 +156,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  printerInfo: {
+    flex: 1,
+  },
+  printerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  printerId: {
+    fontSize: 12,
+    color: '#666',
+  },
   serialText: {
     fontSize: 16,
     flex: 1,
@@ -103,5 +175,8 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 16,
     color: '#333',
+  },
+  spinner: {
+    marginTop: 10,
   },
 });

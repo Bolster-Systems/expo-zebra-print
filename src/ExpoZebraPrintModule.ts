@@ -1,7 +1,14 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
+export type BluetoothPrinter = {
+  id: string;
+  name: string;
+};
+
 declare class ExpoZebraPrintModule extends NativeModule {
   GetPrinters(): Promise<string[]>;
+  ScanForPrinters(): Promise<BluetoothPrinter[]>;
+  ConnectToPrinter(id: string): Promise<boolean>;
   DoPrint(serialNumber: string, labelData: string): Promise<boolean>;
 }
 
