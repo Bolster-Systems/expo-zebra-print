@@ -110,6 +110,13 @@ public class ExpoZebraPrintModule: Module {
     // The module will be accessible from `requireNativeModule('ExpoZebraPrint')` in JavaScript.
     Name("ExpoZebraPrint")
 
+    // RequestPermissions function - iOS handles Bluetooth permissions automatically
+    AsyncFunction("RequestPermissions") { () -> [String: Bool] in
+      // On iOS, Bluetooth permissions are requested automatically when first accessing Bluetooth
+      // Return granted: true to maintain API parity with Android
+      return ["granted": true, "canAskAgain": true]
+    }
+
     // GetPrinters function - returns an array of printer serial numbers
     AsyncFunction("GetPrinters") { () -> [String] in
       // Get all connected accessories

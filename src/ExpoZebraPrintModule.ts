@@ -5,7 +5,13 @@ export type BluetoothPrinter = {
   name: string;
 };
 
+export type PermissionResponse = {
+  granted: boolean;
+  canAskAgain: boolean;
+};
+
 declare class ExpoZebraPrintModule extends NativeModule {
+  RequestPermissions(): Promise<PermissionResponse>;
   GetPrinters(): Promise<string[]>;
   ScanForPrinters(): Promise<BluetoothPrinter[]>;
   ConnectToPrinter(id: string): Promise<boolean>;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import ExpoZebraPrint, { type BluetoothPrinter } from 'expo-zebra-print';
-import { Button, SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Button, SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 
 export default function App() {
   const [printers, setPrinters] = useState<string[]>([]);
@@ -9,8 +9,48 @@ export default function App() {
   const [printStatus, setPrintStatus] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [permissionsGranted, setPermissionsGranted] = useState<boolean>(false);
+
+  const handleRequestPermissions = async () => {
+    try {
+      setPrintStatus('Requesting Bluetooth permissions...');
+      const result = await ExpoZebraPrint.RequestPermissions();
+
+      if (result.granted) {
+        setPermissionsGranted(true);
+        setPrintStatus('Bluetooth permissions granted');
+      } else {
+        setPermissionsGranted(false);
+        if (!result.canAskAgain) {
+          Alert.alert(
+            'Permissions Required',
+            'Bluetooth permissions are required to scan for printers. Please enable them in your device settings.',
+            [{ text: 'OK' }]
+          );
+          setPrintStatus('Bluetooth permissions denied. Please enable in Settings.');
+        } else {
+          setPrintStatus('Bluetooth permissions denied');
+        }
+      }
+    } catch (error) {
+      setPrintStatus(`Permission error: ${error}`);
+    }
+  };
 
   const handleScanForPrinters = async () => {
+    // Check permissions first
+    if (!permissionsGranted) {
+      Alert.alert(
+        'Permissions Required',
+        'Please grant Bluetooth permissions before scanning.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Request Permissions', onPress: handleRequestPermissions }
+        ]
+      );
+      return;
+    }
+
     try {
       setIsScanning(true);
       setPrintStatus('Scanning for Bluetooth printers...');
@@ -73,6 +113,19 @@ export default function App() {
       <ScrollView style={styles.container}>
         <Text style={styles.header}>Zebra Print Module</Text>
 
+        <Group name="Permissions">
+          <Button
+            title={permissionsGranted ? "✓ Permissions Granted" : "Request Bluetooth Permissions"}
+            onPress={handleRequestPermissions}
+            color={permissionsGranted ? "#4CAF50" : undefined}
+          />
+          {!permissionsGranted && (
+            <Text style={styles.permissionHint}>
+              Bluetooth permissions are required to scan for and connect to printers.
+            </Text>
+          )}
+        </Group>
+
         <Group name="Scan for Bluetooth Printers">
           <Button
             title={isScanning ? "Scanning..." : "Scan for Printers"}
@@ -115,7 +168,7 @@ export default function App() {
                       <Text style={styles.printerName}>{printer.name}</Text>
                       <Text style={styles.printerId}>{printer.id}</Text>
                     </View>
-                    <Text style={styles.connectedBadge}>Connected</Text>
+                    <Button title="Print" onPress={() => handleDoPrint(printer.id)} />
                   </View>
                 ))}
               </View>
@@ -233,5 +286,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4CAF50',
     fontWeight: '600',
+  },
+  permissionHint: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
