@@ -41,10 +41,16 @@ const withZebraPrint = (config) => {
     user_project = installer.aggregate_targets.first.user_project
 
     # Iterate through all native targets in the user project
+    needs_save = false
     user_project.native_targets.each do |target|
       if target.name == '${config.modRequest.projectName || config.name}'
-        puts "[Zebra SDK] Configuring #{target.name} with Zebra SDK"
         target.build_configurations.each do |build_config|
+          # Check if already configured to prevent infinite loop
+          sim_flags = build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'].to_s
+          next if sim_flags.include?('ZSDK_API.a')
+
+          puts "[Zebra SDK] Configuring #{target.name} with Zebra SDK"
+
           # Add the Zebra SDK static library based on the SDK
           sim_flags = build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] || '$(inherited)'
           build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] = sim_flags.to_s + ' -force_load "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/ZSDK_API.a"'
@@ -57,10 +63,12 @@ const withZebraPrint = (config) => {
           build_config.build_settings['HEADER_SEARCH_PATHS'] = header_paths.to_s + ' "' + zebra_sdk_path + '/ios-arm64/Headers" "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/Headers"'
 
           puts "[Zebra SDK] Configured #{build_config.name} build settings"
+          needs_save = true
         end
-        user_project.save
       end
     end
+
+    user_project.save if needs_save
 `;
 
           // Insert before the end of post_install
