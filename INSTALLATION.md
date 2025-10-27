@@ -33,7 +33,7 @@ post_install do |installer|
 
   # ===== ADD THIS SECTION =====
   # Configure Zebra SDK linking for the app target
-  zebra_sdk_path = File.expand_path('../../node_modules/expo-zebra-print/ios/ZSDK_API.xcframework', __dir__)
+  zebra_sdk_path = File.expand_path('../node_modules/expo-zebra-print/ios/ZSDK_API.xcframework', __dir__)
 
   # Find the user project
   user_project = installer.aggregate_targets.first.user_project
