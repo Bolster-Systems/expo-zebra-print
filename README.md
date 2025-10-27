@@ -1,35 +1,74 @@
-# expo-zebra-print
+# Installation Instructions
 
-Printing support for Expo and Zebra Printers
+## 1. Install the package
 
-# API documentation
-
-- [Documentation for the latest stable release](https://docs.expo.dev/versions/latest/sdk/zebra-print/)
-- [Documentation for the main branch](https://docs.expo.dev/versions/unversioned/sdk/zebra-print/)
-
-# Installation in managed Expo projects
-
-For [managed](https://docs.expo.dev/archive/managed-vs-bare/) Expo projects, please follow the installation instructions in the [API documentation for the latest stable release](#api-documentation). If you follow the link and there is no documentation available then this library is not yet usable within managed projects &mdash; it is likely to be included in an upcoming Expo SDK release.
-
-# Installation in bare React Native projects
-
-For bare React Native projects, you must ensure that you have [installed and configured the `expo` package](https://docs.expo.dev/bare/installing-expo-modules/) before continuing.
-
-### Add the package to your npm dependencies
-
-```
+```bash
 npm install expo-zebra-print
+# or
+yarn add expo-zebra-print
 ```
 
-### Configure for Android
+## 2. Add the plugin to your app.json
 
+```json
+{
+  "expo": {
+    "plugins": ["expo-zebra-print"]
+  }
+}
+```
 
+## 3. Add Zebra SDK linking to your Podfile
 
+Open `ios/Podfile` and add this code inside the `post_install` hook (after the `react_native_post_install` call):
 
-### Configure for iOS
+```ruby
+post_install do |installer|
+  react_native_post_install(
+    installer,
+    config[:reactNativePath],
+    :mac_catalyst_enabled => false,
+    :ccache_enabled => ccache_enabled?(podfile_properties),
+  )
 
-Run `npx pod-install` after installing the npm package.
+  # ===== ADD THIS SECTION =====
+  # Configure Zebra SDK linking for the app target
+  zebra_sdk_path = File.expand_path('../node_modules/expo-zebra-print/ios/ZSDK_API.xcframework', __dir__)
 
-# Contributing
+  # Find the user project
+  user_project = installer.aggregate_targets.first.user_project
 
-Contributions are very welcome! Please refer to guidelines described in the [contributing guide]( https://github.com/expo/expo#contributing).
+  # Configure the app target
+  user_project.native_targets.each do |target|
+    if target.name == 'YourAppName'  # Replace with your actual app name
+      puts "[Zebra SDK] Configuring #{target.name} with Zebra SDK"
+
+      target.build_configurations.each do |config|
+        # Add -force_load flags for simulator and device
+        config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] ||= '$(inherited)'
+        config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] += ' -force_load "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/ZSDK_API.a"'
+
+        config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] ||= '$(inherited)'
+        config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] += ' -force_load "' + zebra_sdk_path + '/ios-arm64/ZSDK_API.a"'
+
+        puts "[Zebra SDK] Configured #{config.name}"
+      end
+
+      user_project.save
+    end
+  end
+  # ===== END SECTION =====
+end
+```
+
+**Important:** Replace `'YourAppName'` with your actual app target name (usually lowercase version of your app name).
+
+## 4. Install pods and build
+
+```bash
+cd ios
+pod install
+cd ..
+npx expo run:ios
+```
+
