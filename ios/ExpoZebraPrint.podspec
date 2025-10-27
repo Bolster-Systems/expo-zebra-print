@@ -23,13 +23,17 @@ Pod::Spec.new do |s|
   # External Accessory framework
   s.frameworks = 'ExternalAccessory'
 
-  # Vendor the Zebra SDK xcframework
-  s.vendored_frameworks = 'ZSDK_API.xcframework'
+  # Vendor the Zebra SDK static libraries directly
+  s.vendored_libraries = 'ZSDK_API.xcframework/ios-arm64/ZSDK_API.a', 'ZSDK_API.xcframework/ios-arm64_x86_64-simulator/ZSDK_API.a'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_TARGET_SRCROOT}/ZSDK_API.xcframework/ios-arm64/Headers" "${PODS_TARGET_SRCROOT}/ZSDK_API.xcframework/ios-arm64_x86_64-simulator/Headers"',
   }
 
   s.source_files = "*.{h,m,mm,swift,hpp,cpp}", "Zebra*.{h,m}"
+
+  # Preserve the xcframework directory structure
+  s.preserve_paths = 'ZSDK_API.xcframework'
 end
