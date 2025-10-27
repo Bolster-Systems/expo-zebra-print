@@ -46,16 +46,15 @@ const withZebraPrint = (config) => {
         puts "[Zebra SDK] Configuring #{target.name} with Zebra SDK"
         target.build_configurations.each do |build_config|
           # Add the Zebra SDK static library based on the SDK
-          build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] ||= '$(inherited)'
-          build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] += ' -force_load "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/ZSDK_API.a"'
+          sim_flags = build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] || '$(inherited)'
+          build_config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] = sim_flags.to_s + ' -force_load "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/ZSDK_API.a"'
 
-          build_config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] ||= '$(inherited)'
-          build_config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] += ' -force_load "' + zebra_sdk_path + '/ios-arm64/ZSDK_API.a"'
+          device_flags = build_config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] || '$(inherited)'
+          build_config.build_settings['OTHER_LDFLAGS[sdk=iphoneos*]'] = device_flags.to_s + ' -force_load "' + zebra_sdk_path + '/ios-arm64/ZSDK_API.a"'
 
           # Add header search paths
-          build_config.build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
-          build_config.build_settings['HEADER_SEARCH_PATHS'] += ' "' + zebra_sdk_path + '/ios-arm64/Headers"'
-          build_config.build_settings['HEADER_SEARCH_PATHS'] += ' "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/Headers"'
+          header_paths = build_config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+          build_config.build_settings['HEADER_SEARCH_PATHS'] = header_paths.to_s + ' "' + zebra_sdk_path + '/ios-arm64/Headers" "' + zebra_sdk_path + '/ios-arm64_x86_64-simulator/Headers"'
 
           puts "[Zebra SDK] Configured #{build_config.name} build settings"
         end
